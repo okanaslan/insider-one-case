@@ -1,6 +1,6 @@
 module insider-one-case
 
-go 1.26.1
+go 1.25.0
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.43.0
