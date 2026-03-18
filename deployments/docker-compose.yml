@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      APP_NAME: insider-one-case
+      APP_ENV: development
+      HTTP_PORT: "8080"
+      LOG_LEVEL: debug
+      CLICKHOUSE_ADDR: clickhouse:9000
+      CLICKHOUSE_DATABASE: analytics
+      CLICKHOUSE_USERNAME: default
+      CLICKHOUSE_PASSWORD: ""
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: "0"
+      ALLOW_START_WITHOUT_INFRA: "true"
+      WORKER_BATCH_SIZE: "100"
+      WORKER_FLUSH_INTERVAL_MS: "1000"
+    depends_on:
+      - clickhouse
+      - redis
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  clickhouse_data:
+  redis_data:

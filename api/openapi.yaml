@@ -1,0 +1,36 @@
+openapi: 3.0.3
+info:
+  title: Insider One Case API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+  /events:
+    post:
+      summary: Ingest an event (stub)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "202":
+          description: Event accepted
+  /metrics:
+    get:
+      summary: Query metrics (stub)
+      parameters:
+        - in: query
+          name: metric_name
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Metrics response
