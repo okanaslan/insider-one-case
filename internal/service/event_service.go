@@ -8,24 +8,31 @@ import (
 
 	"insider-one-case/internal/idempotency"
 	"insider-one-case/internal/model"
-	"insider-one-case/internal/repository"
 )
 
-var ErrDuplicateEvent = errors.New("event already processed")
+var (
+	ErrDuplicateEvent = errors.New("event already processed")
+	ErrEnqueueFailed  = errors.New("failed to enqueue event")
+)
+
+// EventEnqueuer is the interface the service uses to submit events for async processing.
+type EventEnqueuer interface {
+	Enqueue(model.EventIngestRequest) error
+}
 
 type EventService struct {
-	repo        *repository.EventRepository
+	queue       EventEnqueuer
 	idempotency *idempotency.RedisStore
 	log         *slog.Logger
 }
 
 func NewEventService(
-	repo *repository.EventRepository,
+	queue EventEnqueuer,
 	idempotency *idempotency.RedisStore,
 	log *slog.Logger,
 ) *EventService {
 	return &EventService{
-		repo:        repo,
+		queue:       queue,
 		idempotency: idempotency,
 		log:         log,
 	}
@@ -33,6 +40,7 @@ func NewEventService(
 
 func (s *EventService) Ingest(ctx context.Context, req model.EventIngestRequest) (model.EventIngestResponse, error) {
 	key := "event:" + req.UniquenessKey()
+
 	reserved, err := s.idempotency.ReserveEvent(ctx, key, 24*time.Hour)
 	if err != nil {
 		s.log.Warn("idempotency reserve failed; proceeding", "uniqueness_key", req.UniquenessKey(), "error", err)
@@ -40,13 +48,13 @@ func (s *EventService) Ingest(ctx context.Context, req model.EventIngestRequest)
 		return model.EventIngestResponse{}, ErrDuplicateEvent
 	}
 
-	// TODO: enqueue to async worker pipeline and persist batch to ClickHouse.
-	if err := s.repo.InsertEvent(ctx, req); err != nil {
-		return model.EventIngestResponse{}, err
+	if err := s.queue.Enqueue(req); err != nil {
+		s.log.Error("failed to enqueue event", "uniqueness_key", req.UniquenessKey(), "error", err)
+		return model.EventIngestResponse{}, ErrEnqueueFailed
 	}
 
 	return model.EventIngestResponse{
 		Status:  "accepted",
-		Message: "event queued for processing",
+		Message: "event accepted for processing",
 	}, nil
 }

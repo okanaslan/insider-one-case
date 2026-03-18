@@ -64,18 +64,19 @@ func main() {
 
 	eventRepo := repository.NewEventRepository(clickHouseConn, log)
 	metricsRepo := repository.NewMetricsRepository(clickHouseConn, log)
-
-	eventService := service.NewEventService(eventRepo, idempotencyStore, log)
-	metricsService := service.NewMetricsService(metricsRepo, log)
-
-	healthHandler := handler.NewHealthHandler(cfg)
-	eventHandler := handler.NewEventHandler(eventService, eventValidator)
-	metricsHandler := handler.NewMetricsHandler(metricsService)
+	_ = eventRepo // reserved for worker batch writes
 
 	ingestWorker := worker.NewIngestWorker(cfg, log)
 	workerCtx, workerCancel := context.WithCancel(context.Background())
 	defer workerCancel()
 	go ingestWorker.Start(workerCtx)
+
+	eventService := service.NewEventService(ingestWorker, idempotencyStore, log)
+	metricsService := service.NewMetricsService(metricsRepo, log)
+
+	healthHandler := handler.NewHealthHandler(cfg)
+	eventHandler := handler.NewEventHandler(eventService, eventValidator)
+	metricsHandler := handler.NewMetricsHandler(metricsService)
 
 	engine := router.Build(cfg, log, healthHandler, eventHandler, metricsHandler)
 	server := &http.Server{

@@ -41,23 +41,27 @@ func (h *EventHandler) PostEvent(c *gin.Context) {
 	resp, err := h.eventService.Ingest(c.Request.Context(), req)
 	if err != nil {
 		if errors.Is(err, service.ErrDuplicateEvent) {
-			c.JSON(http.StatusConflict, model.APIResponse{
-				Success: false,
-				Error:   "duplicate event",
+			c.JSON(http.StatusConflict, gin.H{
+				"error":   "duplicate_event",
+				"message": "event already processed",
 			})
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, model.APIResponse{
-			Success: false,
-			Error:   "failed to ingest event",
+		if errors.Is(err, service.ErrEnqueueFailed) {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "internal_error",
+				"message": "failed to enqueue event",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "internal_error",
+			"message": "failed to ingest event",
 		})
 		return
 	}
 
-	c.JSON(http.StatusAccepted, model.APIResponse{
-		Success: true,
-		Message: "event accepted",
-		Data:    resp,
-	})
+	c.JSON(http.StatusAccepted, resp)
 }
