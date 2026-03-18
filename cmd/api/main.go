@@ -65,11 +65,11 @@ func main() {
 	eventRepo := repository.NewEventRepository(clickHouseConn, log)
 	metricsRepo := repository.NewMetricsRepository(clickHouseConn, log)
 
-	eventService := service.NewEventService(eventRepo, idempotencyStore, eventValidator, log)
+	eventService := service.NewEventService(eventRepo, idempotencyStore, log)
 	metricsService := service.NewMetricsService(metricsRepo, log)
 
 	healthHandler := handler.NewHealthHandler(cfg)
-	eventHandler := handler.NewEventHandler(eventService)
+	eventHandler := handler.NewEventHandler(eventService, eventValidator)
 	metricsHandler := handler.NewMetricsHandler(metricsService)
 
 	ingestWorker := worker.NewIngestWorker(cfg, log)

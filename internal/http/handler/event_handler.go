@@ -5,26 +5,35 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	govalidator "github.com/go-playground/validator/v10"
 
 	"insider-one-case/internal/model"
 	"insider-one-case/internal/service"
+	appvalidator "insider-one-case/internal/validator"
 )
 
 type EventHandler struct {
-	eventService *service.EventService
+	eventService   *service.EventService
+	eventValidator *appvalidator.EventValidator
 }
 
-func NewEventHandler(eventService *service.EventService) *EventHandler {
-	return &EventHandler{eventService: eventService}
+func NewEventHandler(eventService *service.EventService, eventValidator *appvalidator.EventValidator) *EventHandler {
+	return &EventHandler{eventService: eventService, eventValidator: eventValidator}
 }
 
 func (h *EventHandler) PostEvent(c *gin.Context) {
 	var req model.EventIngestRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, model.APIResponse{
-			Success: false,
-			Error:   "invalid request body",
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "malformed JSON body",
+		})
+		return
+	}
+
+	if err := h.eventValidator.ValidateEvent(c.Request.Context(), req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -35,15 +44,6 @@ func (h *EventHandler) PostEvent(c *gin.Context) {
 			c.JSON(http.StatusConflict, model.APIResponse{
 				Success: false,
 				Error:   "duplicate event",
-			})
-			return
-		}
-
-		var validationErrs govalidator.ValidationErrors
-		if errors.As(err, &validationErrs) {
-			c.JSON(http.StatusBadRequest, model.APIResponse{
-				Success: false,
-				Error:   "validation failed",
 			})
 			return
 		}

@@ -20,7 +20,7 @@ func NewEventRepository(conn clickhouse.Conn, log *slog.Logger) *EventRepository
 
 func (r *EventRepository) InsertEvent(ctx context.Context, event model.EventIngestRequest) error {
 	if r.conn == nil {
-		r.log.Debug("clickhouse not configured, skipping event insert", "event_id", event.EventID)
+		r.log.Debug("clickhouse not configured, skipping event insert", "uniqueness_key", event.UniquenessKey())
 		return nil
 	}
 
