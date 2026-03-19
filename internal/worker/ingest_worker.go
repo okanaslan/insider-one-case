@@ -24,15 +24,20 @@ type IngestWorker struct {
 }
 
 func NewIngestWorker(cfg config.Config, log *slog.Logger, writer EventBatchWriter) *IngestWorker {
-	queueSize := cfg.IngestQueueBufferSize
-	if queueSize <= 0 {
-		queueSize = 10000
+	normalizedCfg := cfg.Normalized()
+	if log != nil && hasNormalizedTuningChange(cfg, normalizedCfg) {
+		log.Warn("worker tuning normalized",
+			"worker_batch_size", normalizedCfg.WorkerBatchSize,
+			"worker_flush_interval_ms", normalizedCfg.WorkerFlushIntervalMS,
+			"ingest_queue_buffer_size", normalizedCfg.IngestQueueBufferSize,
+			"ingest_enqueue_timeout_ms", normalizedCfg.IngestEnqueueTimeoutMS,
+		)
 	}
 
 	return &IngestWorker{
-		cfg:    cfg,
+		cfg:    normalizedCfg,
 		log:    log,
-		queue:  make(chan model.EventIngestRequest, queueSize),
+		queue:  make(chan model.EventIngestRequest, normalizedCfg.IngestQueueBufferSize),
 		writer: writer,
 	}
 }
@@ -43,9 +48,6 @@ func NewIngestWorker(cfg config.Config, log *slog.Logger, writer EventBatchWrite
 // the configured enqueue timeout window.
 func (w *IngestWorker) Enqueue(ctx context.Context, event model.EventIngestRequest) error {
 	timeoutMS := w.cfg.IngestEnqueueTimeoutMS
-	if timeoutMS <= 0 {
-		timeoutMS = 25
-	}
 
 	enqueueCtx, cancel := context.WithTimeout(ctx, time.Duration(timeoutMS)*time.Millisecond)
 	defer cancel()
@@ -63,14 +65,7 @@ func (w *IngestWorker) Enqueue(ctx context.Context, event model.EventIngestReque
 
 func (w *IngestWorker) Start(ctx context.Context) {
 	batchSize := w.cfg.WorkerBatchSize
-	if batchSize <= 0 {
-		batchSize = 100
-	}
-
 	interval := time.Duration(w.cfg.WorkerFlushIntervalMS) * time.Millisecond
-	if interval <= 0 {
-		interval = 1 * time.Second
-	}
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -145,4 +140,11 @@ func (w *IngestWorker) drainQueuedEvents(batch []model.EventIngestRequest) []mod
 			return batch
 		}
 	}
+}
+
+func hasNormalizedTuningChange(original, normalized config.Config) bool {
+	return original.WorkerBatchSize != normalized.WorkerBatchSize ||
+		original.WorkerFlushIntervalMS != normalized.WorkerFlushIntervalMS ||
+		original.IngestQueueBufferSize != normalized.IngestQueueBufferSize ||
+		original.IngestEnqueueTimeoutMS != normalized.IngestEnqueueTimeoutMS
 }

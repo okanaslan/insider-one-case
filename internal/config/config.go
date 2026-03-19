@@ -7,6 +7,21 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const (
+	DefaultWorkerBatchSize        = 250
+	MinWorkerBatchSize            = 1
+	MaxWorkerBatchSize            = 1000
+	DefaultWorkerFlushIntervalMS  = 250
+	MinWorkerFlushIntervalMS      = 10
+	MaxWorkerFlushIntervalMS      = 5000
+	DefaultIngestQueueBufferSize  = 5000
+	MinIngestQueueBufferSize      = 1
+	MaxIngestQueueBufferSize      = 20000
+	DefaultIngestEnqueueTimeoutMS = 25
+	MinIngestEnqueueTimeoutMS     = 1
+	MaxIngestEnqueueTimeoutMS     = 250
+)
+
 type Config struct {
 	AppName                string `env:"APP_NAME" envDefault:"insider-one-case"`
 	AppEnv                 string `env:"APP_ENV" envDefault:"development"`
@@ -20,10 +35,18 @@ type Config struct {
 	RedisPassword          string `env:"REDIS_PASSWORD" envDefault:""`
 	RedisDB                int    `env:"REDIS_DB" envDefault:"0"`
 	AllowStartWithoutInfra bool   `env:"ALLOW_START_WITHOUT_INFRA" envDefault:"true"`
-	WorkerBatchSize        int    `env:"WORKER_BATCH_SIZE" envDefault:"100"`
-	WorkerFlushIntervalMS  int    `env:"WORKER_FLUSH_INTERVAL_MS" envDefault:"1000"`
-	IngestQueueBufferSize  int    `env:"INGEST_QUEUE_BUFFER_SIZE" envDefault:"10000"`
+	WorkerBatchSize        int    `env:"WORKER_BATCH_SIZE" envDefault:"250"`
+	WorkerFlushIntervalMS  int    `env:"WORKER_FLUSH_INTERVAL_MS" envDefault:"250"`
+	IngestQueueBufferSize  int    `env:"INGEST_QUEUE_BUFFER_SIZE" envDefault:"5000"`
 	IngestEnqueueTimeoutMS int    `env:"INGEST_ENQUEUE_TIMEOUT_MS" envDefault:"25"`
+}
+
+func (c Config) Normalized() Config {
+	c.WorkerBatchSize = clampIntOrDefault(c.WorkerBatchSize, DefaultWorkerBatchSize, MinWorkerBatchSize, MaxWorkerBatchSize)
+	c.WorkerFlushIntervalMS = clampIntOrDefault(c.WorkerFlushIntervalMS, DefaultWorkerFlushIntervalMS, MinWorkerFlushIntervalMS, MaxWorkerFlushIntervalMS)
+	c.IngestQueueBufferSize = clampIntOrDefault(c.IngestQueueBufferSize, DefaultIngestQueueBufferSize, MinIngestQueueBufferSize, MaxIngestQueueBufferSize)
+	c.IngestEnqueueTimeoutMS = clampIntOrDefault(c.IngestEnqueueTimeoutMS, DefaultIngestEnqueueTimeoutMS, MinIngestEnqueueTimeoutMS, MaxIngestEnqueueTimeoutMS)
+	return c
 }
 
 func Load() (Config, error) {
@@ -33,5 +56,22 @@ func Load() (Config, error) {
 
 	var cfg Config
 	err := env.Parse(&cfg)
-	return cfg, err
+	if err != nil {
+		return Config{}, err
+	}
+
+	return cfg.Normalized(), nil
+}
+
+func clampIntOrDefault(value, defaultValue, minValue, maxValue int) int {
+	if value <= 0 {
+		return defaultValue
+	}
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
+	}
+	return value
 }

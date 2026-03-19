@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2026-03-19
+
+- Added central normalization for queue and worker tuning with explicit defaults and min/max bounds.
+- Tightened default tuning to `WORKER_BATCH_SIZE=250`, `WORKER_FLUSH_INTERVAL_MS=250`, and `INGEST_QUEUE_BUFFER_SIZE=5000` while keeping enqueue timeout at `25ms`.
+- Normalized direct worker configs in the constructor so tests and manual wiring cannot create unbounded or extreme queue settings.
+- Added config and worker tests covering defaulting and clamping behavior.
+
 ## [0.7.0] - 2026-03-19
 
 - Added bounded enqueue backpressure window via `INGEST_ENQUEUE_TIMEOUT_MS` (default `25ms`) to reduce immediate drops under short queue contention.

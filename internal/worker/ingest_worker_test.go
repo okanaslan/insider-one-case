@@ -164,3 +164,18 @@ func TestIngestWorkerEnqueueReturnsContextCanceled(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorIs(t, err, context.Canceled)
 }
+
+func TestNewIngestWorkerNormalizesUnsafeTuningValues(t *testing.T) {
+	worker := NewIngestWorker(config.Config{
+		WorkerBatchSize:        config.MaxWorkerBatchSize + 50,
+		WorkerFlushIntervalMS:  -1,
+		IngestQueueBufferSize:  config.MaxIngestQueueBufferSize + 500,
+		IngestEnqueueTimeoutMS: config.MaxIngestEnqueueTimeoutMS + 10,
+	}, slog.Default(), &fakeBatchWriter{})
+
+	require.Equal(t, config.MaxWorkerBatchSize, worker.cfg.WorkerBatchSize)
+	require.Equal(t, config.DefaultWorkerFlushIntervalMS, worker.cfg.WorkerFlushIntervalMS)
+	require.Equal(t, config.MaxIngestQueueBufferSize, worker.cfg.IngestQueueBufferSize)
+	require.Equal(t, config.MaxIngestEnqueueTimeoutMS, worker.cfg.IngestEnqueueTimeoutMS)
+	require.Equal(t, config.MaxIngestQueueBufferSize, cap(worker.queue))
+}
