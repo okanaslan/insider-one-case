@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-03-19
+
+- Added ClickHouse event table initialization and batch event persistence.
+- Implemented real worker flush path with repository-backed batch writes, timer/size/shutdown flush handling, and queue buffer configuration.
+- Added worker tests covering batch-size flush, timer flush, and shutdown flush behavior.
+
 ## [0.3.0] - 2026-03-19
 
 - Implemented `POST /events` happy path with Redis deduplication, in-memory queue, and `202 Accepted` response.

@@ -17,6 +17,7 @@ type Config struct {
 	AllowStartWithoutInfra bool   `env:"ALLOW_START_WITHOUT_INFRA" envDefault:"true"`
 	WorkerBatchSize        int    `env:"WORKER_BATCH_SIZE" envDefault:"100"`
 	WorkerFlushIntervalMS  int    `env:"WORKER_FLUSH_INTERVAL_MS" envDefault:"1000"`
+	IngestQueueBufferSize  int    `env:"INGEST_QUEUE_BUFFER_SIZE" envDefault:"10000"`
 }
 
 func Load() (Config, error) {
