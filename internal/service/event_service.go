@@ -12,12 +12,12 @@ import (
 
 var (
 	ErrDuplicateEvent = errors.New("event already processed")
-	ErrEnqueueFailed  = errors.New("failed to enqueue event")
+	ErrOverloaded     = errors.New("service overloaded")
 )
 
 // EventEnqueuer is the interface the service uses to submit events for async processing.
 type EventEnqueuer interface {
-	Enqueue(model.EventIngestRequest) error
+	Enqueue(ctx context.Context, event model.EventIngestRequest) error
 }
 
 type EventService struct {
@@ -48,9 +48,9 @@ func (s *EventService) Ingest(ctx context.Context, req model.EventIngestRequest)
 		return model.EventIngestResponse{}, ErrDuplicateEvent
 	}
 
-	if err := s.queue.Enqueue(req); err != nil {
+	if err := s.queue.Enqueue(ctx, req); err != nil {
 		s.log.Error("failed to enqueue event", "uniqueness_key", req.UniquenessKey(), "error", err)
-		return model.EventIngestResponse{}, ErrEnqueueFailed
+		return model.EventIngestResponse{}, ErrOverloaded
 	}
 
 	return model.EventIngestResponse{

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-03-19
+
+- Added bounded enqueue backpressure window via `INGEST_ENQUEUE_TIMEOUT_MS` (default `25ms`) to reduce immediate drops under short queue contention.
+- Made worker enqueue context-aware and return timeout/cancel errors explicitly.
+- Mapped enqueue pressure to service-level overload sentinel and `POST /events` `429 rate_limited` response.
+- Added/updated worker, service, and handler tests for enqueue timeout and overload behavior.
+
 ## [0.6.1] - 2026-03-19
 
 - Added event repository tests for nil-connection insert behavior and metadata serialization correctness.

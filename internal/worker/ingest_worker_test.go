@@ -83,8 +83,8 @@ func TestIngestWorkerFlushesWhenBatchSizeReached(t *testing.T) {
 
 	go worker.Start(ctx)
 
-	require.NoError(t, worker.Enqueue(testEvent("purchase")))
-	require.NoError(t, worker.Enqueue(testEvent("signup")))
+	require.NoError(t, worker.Enqueue(context.Background(), testEvent("purchase")))
+	require.NoError(t, worker.Enqueue(context.Background(), testEvent("signup")))
 
 	require.Eventually(t, func() bool {
 		calls, batches := writer.snapshot()
@@ -105,7 +105,7 @@ func TestIngestWorkerFlushesOnTimer(t *testing.T) {
 
 	go worker.Start(ctx)
 
-	require.NoError(t, worker.Enqueue(testEvent("purchase")))
+	require.NoError(t, worker.Enqueue(context.Background(), testEvent("purchase")))
 
 	require.Eventually(t, func() bool {
 		calls, batches := writer.snapshot()
@@ -121,8 +121,8 @@ func TestIngestWorkerFlushesQueuedEventsOnShutdown(t *testing.T) {
 		IngestQueueBufferSize: 10,
 	}, slog.Default(), writer)
 
-	require.NoError(t, worker.Enqueue(testEvent("purchase")))
-	require.NoError(t, worker.Enqueue(testEvent("signup")))
+	require.NoError(t, worker.Enqueue(context.Background(), testEvent("purchase")))
+	require.NoError(t, worker.Enqueue(context.Background(), testEvent("signup")))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go worker.Start(ctx)
@@ -134,16 +134,33 @@ func TestIngestWorkerFlushesQueuedEventsOnShutdown(t *testing.T) {
 	}, time.Second, 10*time.Millisecond)
 }
 
-func TestIngestWorkerEnqueueReturnsErrorWhenQueueIsFull(t *testing.T) {
+func TestIngestWorkerEnqueueReturnsTimeoutWhenQueueIsFull(t *testing.T) {
 	worker := NewIngestWorker(config.Config{
-		WorkerBatchSize:       100,
-		WorkerFlushIntervalMS: 60000,
-		IngestQueueBufferSize: 1,
+		WorkerBatchSize:        100,
+		WorkerFlushIntervalMS:  60000,
+		IngestQueueBufferSize:  1,
+		IngestEnqueueTimeoutMS: 20,
 	}, slog.Default(), &errBatchWriter{err: errors.New("insert failed")})
 
-	require.NoError(t, worker.Enqueue(testEvent("purchase")))
+	require.NoError(t, worker.Enqueue(context.Background(), testEvent("purchase")))
 
-	err := worker.Enqueue(testEvent("signup"))
+	err := worker.Enqueue(context.Background(), testEvent("signup"))
 	require.Error(t, err)
-	require.EqualError(t, err, "event queue is full")
+	require.ErrorIs(t, err, ErrEnqueueTimeout)
+}
+
+func TestIngestWorkerEnqueueReturnsContextCanceled(t *testing.T) {
+	worker := NewIngestWorker(config.Config{
+		IngestQueueBufferSize:  1,
+		IngestEnqueueTimeoutMS: 100,
+	}, slog.Default(), &errBatchWriter{err: errors.New("insert failed")})
+
+	require.NoError(t, worker.Enqueue(context.Background(), testEvent("purchase")))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := worker.Enqueue(ctx, testEvent("signup"))
+	require.Error(t, err)
+	require.ErrorIs(t, err, context.Canceled)
 }

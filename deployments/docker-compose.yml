@@ -38,6 +38,7 @@ services:
       WORKER_BATCH_SIZE: "100"
       WORKER_FLUSH_INTERVAL_MS: "1000"
       INGEST_QUEUE_BUFFER_SIZE: "10000"
+      INGEST_ENQUEUE_TIMEOUT_MS: "25"
     depends_on:
       migrate:
         condition: service_completed_successfully

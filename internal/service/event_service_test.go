@@ -18,7 +18,8 @@ type fakeEnqueuer struct {
 	enqueued []model.EventIngestRequest
 }
 
-func (f *fakeEnqueuer) Enqueue(event model.EventIngestRequest) error {
+func (f *fakeEnqueuer) Enqueue(ctx context.Context, event model.EventIngestRequest) error {
+	_ = ctx
 	if f.err != nil {
 		return f.err
 	}
@@ -79,7 +80,7 @@ func TestIngestEnqueuesEventSuccessfully(t *testing.T) {
 	require.Equal(t, req.EventName, queue.enqueued[0].EventName)
 }
 
-func TestIngestReturnsEnqueueFailedWhenQueueReturnsError(t *testing.T) {
+func TestIngestReturnsOverloadedWhenQueueReturnsError(t *testing.T) {
 	queue := &fakeEnqueuer{err: errors.New("queue full")}
 	svc := NewEventService(queue, idempotency.NewRedisStore(nil, slog.Default()), slog.Default())
 
@@ -94,6 +95,6 @@ func TestIngestReturnsEnqueueFailedWhenQueueReturnsError(t *testing.T) {
 
 	_, err := svc.Ingest(context.Background(), req)
 	require.Error(t, err)
-	require.ErrorIs(t, err, ErrEnqueueFailed)
+	require.ErrorIs(t, err, ErrOverloaded)
 	require.Len(t, queue.enqueued, 0)
 }

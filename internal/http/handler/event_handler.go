@@ -48,10 +48,10 @@ func (h *EventHandler) PostEvent(c *gin.Context) {
 			return
 		}
 
-		if errors.Is(err, service.ErrEnqueueFailed) {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "internal_error",
-				"message": "failed to enqueue event",
+		if errors.Is(err, service.ErrOverloaded) {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error":   "rate_limited",
+				"message": "ingestion queue is overloaded, try again",
 			})
 			return
 		}

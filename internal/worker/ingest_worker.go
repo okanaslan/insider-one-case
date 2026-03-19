@@ -10,6 +10,8 @@ import (
 	"insider-one-case/internal/model"
 )
 
+var ErrEnqueueTimeout = errors.New("enqueue timed out")
+
 type EventBatchWriter interface {
 	InsertEventsBatch(ctx context.Context, events []model.EventIngestRequest) error
 }
@@ -36,13 +38,26 @@ func NewIngestWorker(cfg config.Config, log *slog.Logger, writer EventBatchWrite
 }
 
 // Enqueue adds an event to the in-memory queue for async processing.
-// Returns an error if the queue is full.
-func (w *IngestWorker) Enqueue(event model.EventIngestRequest) error {
+
+// Returns ErrEnqueueTimeout if the queue cannot accept the event within
+// the configured enqueue timeout window.
+func (w *IngestWorker) Enqueue(ctx context.Context, event model.EventIngestRequest) error {
+	timeoutMS := w.cfg.IngestEnqueueTimeoutMS
+	if timeoutMS <= 0 {
+		timeoutMS = 25
+	}
+
+	enqueueCtx, cancel := context.WithTimeout(ctx, time.Duration(timeoutMS)*time.Millisecond)
+	defer cancel()
+
 	select {
 	case w.queue <- event:
 		return nil
-	default:
-		return errors.New("event queue is full")
+	case <-enqueueCtx.Done():
+		if errors.Is(enqueueCtx.Err(), context.DeadlineExceeded) {
+			return ErrEnqueueTimeout
+		}
+		return enqueueCtx.Err()
 	}
 }
 
