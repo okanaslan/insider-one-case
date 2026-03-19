@@ -1,4 +1,4 @@
-.PHONY: run build test tidy fmt swagger
+.PHONY: run build test tidy fmt swagger migrate migrate-status
 
 run:
 	go run ./cmd/api
@@ -17,3 +17,9 @@ fmt:
 
 swagger:
 	swag init -g cmd/api/main.go -o docs
+
+migrate:
+	go run ./cmd/migrate up
+
+migrate-status:
+	go run ./cmd/migrate status

@@ -13,7 +13,7 @@ services:
       CLICKHOUSE_ADDR: clickhouse:9000
       CLICKHOUSE_DATABASE: analytics
       CLICKHOUSE_USERNAME: default
-      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_PASSWORD: "devpassword"
       REDIS_ADDR: redis:6379
       REDIS_PASSWORD: ""
       REDIS_DB: "0"
@@ -33,7 +33,7 @@ services:
     environment:
       CLICKHOUSE_DB: analytics
       CLICKHOUSE_USER: default
-      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_PASSWORD: "devpassword"
     volumes:
       - clickhouse_data:/var/lib/clickhouse
 

@@ -1,6 +1,11 @@
 package config
 
-import "github.com/caarlos0/env/v11"
+import (
+	"os"
+
+	"github.com/caarlos0/env/v11"
+	"github.com/joho/godotenv"
+)
 
 type Config struct {
 	AppName                string `env:"APP_NAME" envDefault:"insider-one-case"`
@@ -21,6 +26,10 @@ type Config struct {
 }
 
 func Load() (Config, error) {
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		return Config{}, err
+	}
+
 	var cfg Config
 	err := env.Parse(&cfg)
 	return cfg, err

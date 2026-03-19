@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-03-19
+
+- Added Goose-based ClickHouse migrations with an embedded `cmd/migrate` command and initial events table migration.
+- Moved schema management out of API startup into explicit migration commands (`make migrate`, `make migrate-status`).
+- Centralized optional `.env` loading in shared config so both API and migration commands read the same environment settings.
+
 ## [0.4.0] - 2026-03-19
 
 - Added ClickHouse event table initialization and batch event persistence.

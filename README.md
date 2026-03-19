@@ -8,6 +8,7 @@ API for an event ingestion and analytics service.
 
 ```bash
 go mod tidy
+make migrate
 go run ./cmd/api
 ```
 
@@ -17,6 +18,18 @@ The service starts on `:8080` by default.
 
 ```bash
 docker compose -f deployments/docker-compose.yml up --build
+```
+
+### Run ClickHouse Migrations
+
+```bash
+make migrate
+```
+
+Check migration status:
+
+```bash
+make migrate-status
 ```
 
 ### Run Tests

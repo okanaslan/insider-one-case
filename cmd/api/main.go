@@ -64,14 +64,6 @@ func main() {
 
 	eventRepo := repository.NewEventRepository(clickHouseConn, log)
 	metricsRepo := repository.NewMetricsRepository(clickHouseConn, log)
-	if err := eventRepo.EnsureEventsTable(startupCtx); err != nil {
-		if cfg.AllowStartWithoutInfra {
-			log.Warn("failed to ensure events table; continuing due to ALLOW_START_WITHOUT_INFRA", "error", err)
-		} else {
-			log.Error("failed to ensure events table", "error", err)
-			os.Exit(1)
-		}
-	}
 
 	ingestWorker := worker.NewIngestWorker(cfg, log, eventRepo)
 	workerCtx, workerCancel := context.WithCancel(context.Background())
