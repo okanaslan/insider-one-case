@@ -32,6 +32,7 @@ func Build(
 
 	r.GET("/health", healthHandler.GetHealth)
 	r.POST("/events", eventHandler.PostEvent)
+	r.POST("/events/bulk", eventHandler.PostEventBulk)
 	r.GET("/metrics", metricsHandler.GetMetrics)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

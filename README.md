@@ -62,6 +62,8 @@ Main runtime knobs exposed through environment variables:
 - `WORKER_FLUSH_INTERVAL_MS`: max wait before flushing a partial batch. Current default: `250`.
 - `INGEST_QUEUE_BUFFER_SIZE`: bounded queue capacity for accepted events. Current default: `5000`.
 - `INGEST_ENQUEUE_TIMEOUT_MS`: max wait to push into the in-memory queue before returning overload. Current default: `25`.
+- `BULK_MAX_EVENTS_PER_REQUEST`: maximum events allowed per bulk ingestion request. Current default: `500`.
+- `BULK_PER_REQUEST_TIMEOUT_MS`: per-request timeout for bulk processing logic (not enforced at handler level, for future use). Current default: `1500`.
 
 ## Endpoints
 
@@ -126,6 +128,63 @@ Typical responses:
 - `429 Too Many Requests`: bounded queue could not accept the event within the enqueue timeout window.
 - `400 Bad Request`: malformed or invalid request payload.
 - `500 Internal Server Error`: unexpected ingestion failure.
+
+### `POST /events/bulk`
+
+Accepts multiple events for asynchronous processing in a single request. The request body must be a JSON object with an `events` array. Each event follows the same structure as `POST /events`. Returns a partial-success response showing per-item outcomes.
+
+```json
+{
+  "events": [
+    {
+      "event_name": "purchase",
+      "channel": "mobile",
+      "campaign_id": "cmp_123",
+      "user_id": "user_456",
+      "timestamp": 1710000000,
+      "tags": ["promo", "spring"],
+      "metadata": { "amount": 120, "currency": "TRY" }
+    },
+    {
+      "event_name": "view_content",
+      "channel": "web",
+      "campaign_id": "cmp_124",
+      "user_id": "user_457",
+      "timestamp": 1710000001,
+      "tags": ["summer"],
+      "metadata": { "page": "/products" }
+    }
+  ]
+}
+```
+
+Notes:
+
+- Minimum 1 event, maximum `BULK_MAX_EVENTS_PER_REQUEST` events per request (default 500).
+- Each event is validated and processed independently.
+- Response includes per-item status: `accepted`, `duplicate`, `invalid`, `overloaded`, or `error`.
+
+Example response (partial success):
+
+```json
+{
+  "status": "accepted_partial",
+  "summary": {
+    "total": 2,
+    "accepted": 1,
+    "duplicate": 1,
+    "invalid": 0,
+    "overloaded": 0,
+    "error": 0
+  },
+}
+```
+
+Typical responses:
+
+- `202 Accepted`: valid request.
+- `400 Bad Request`: invalid (malformed JSON, empty array, oversized array, >1 invalid field per item).
+- `500 Internal Server Error`: fatal handler/service failure.
 
 ### `GET /metrics`
 

@@ -98,3 +98,69 @@ func TestIngestReturnsOverloadedWhenQueueReturnsError(t *testing.T) {
 	require.ErrorIs(t, err, ErrOverloaded)
 	require.Len(t, queue.enqueued, 0)
 }
+
+func TestIngestBulkAllAccepted(t *testing.T) {
+	queue := &fakeEnqueuer{}
+	svc := NewEventService(queue, idempotency.NewRedisStore(nil, slog.Default()), slog.Default())
+
+	bulkReq := model.BulkEventIngestRequest{
+		Events: []model.EventIngestRequest{
+			{
+				EventName:  "purchase",
+				UserID:     "user_1",
+				Timestamp:  1710000000,
+				Channel:    "mobile",
+				CampaignID: "cmp_1",
+				Tags:       []string{"promo"},
+			},
+			{
+				EventName:  "view",
+				UserID:     "user_2",
+				Timestamp:  1710000001,
+				Channel:    "web",
+				CampaignID: "cmp_2",
+				Tags:       []string{"summer"},
+			},
+		},
+	}
+
+	resp := svc.IngestBulk(context.Background(), bulkReq)
+	require.Equal(t, "accepted_all", resp.Status)
+	require.Equal(t, 2, resp.Summary.Total)
+	require.Equal(t, 2, resp.Summary.Accepted)
+	require.Equal(t, 0, resp.Summary.Duplicate)
+	require.Equal(t, 0, resp.Summary.Overloaded)
+	require.Len(t, queue.enqueued, 2)
+}
+
+func TestIngestBulkMixedOutcomes(t *testing.T) {
+	queue := &fakeEnqueuer{err: errors.New("queue full")}
+	svc := NewEventService(queue, idempotency.NewRedisStore(nil, slog.Default()), slog.Default())
+
+	bulkReq := model.BulkEventIngestRequest{
+		Events: []model.EventIngestRequest{
+			{
+				EventName:  "purchase",
+				UserID:     "user_1",
+				Timestamp:  1710000000,
+				Channel:    "mobile",
+				CampaignID: "cmp_1",
+				Tags:       []string{"promo"},
+			},
+			{
+				EventName:  "view",
+				UserID:     "user_2",
+				Timestamp:  1710000001,
+				Channel:    "web",
+				CampaignID: "cmp_2",
+				Tags:       []string{"summer"},
+			},
+		},
+	}
+
+	resp := svc.IngestBulk(context.Background(), bulkReq)
+	require.Equal(t, "accepted_partial", resp.Status)
+	require.Equal(t, 2, resp.Summary.Total)
+	require.Equal(t, 0, resp.Summary.Accepted)
+	require.Equal(t, 2, resp.Summary.Error) // Regular errors map to error, not overload
+}

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2026-03-19
+
+- Implemented `POST /events/bulk` with partial-success semantics; per-event outcomes (accepted, duplicate, invalid, overloaded, error) returned in structured response.
+- Added config knobs `BULK_MAX_EVENTS_PER_REQUEST` (default 500, bounds 1–5000) and `BULK_PER_REQUEST_TIMEOUT_MS` (default 1500) with normalization.
+- Bulk service reuses existing queue, dedupe, and backpressure logic; handler validates envelope size and per-event fields independently.
+- Updated README with endpoint contract and retry guidance; added `k6_bulk_ingestion.js` load test; all tests passing.
+
 ## [0.8.2] - 2026-03-19
 
 - Improved ingestion load-test realism by expanding synthetic event/cardinality dimensions (event names, channels, campaigns, and multi-tag combinations).

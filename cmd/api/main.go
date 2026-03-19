@@ -64,7 +64,7 @@ func main() {
 	metricsService := service.NewMetricsService(metricsRepo, log)
 
 	healthHandler := handler.NewHealthHandler(cfg)
-	eventHandler := handler.NewEventHandler(eventService, eventValidator)
+	eventHandler := handler.NewEventHandler(eventService, eventValidator, cfg)
 	metricsHandler := handler.NewMetricsHandler(metricsService)
 
 	engine := router.Build(cfg, log, healthHandler, eventHandler, metricsHandler)
