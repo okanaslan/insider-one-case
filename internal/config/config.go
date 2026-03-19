@@ -34,7 +34,6 @@ type Config struct {
 	RedisAddr              string `env:"REDIS_ADDR" envDefault:"localhost:6379"`
 	RedisPassword          string `env:"REDIS_PASSWORD" envDefault:""`
 	RedisDB                int    `env:"REDIS_DB" envDefault:"0"`
-	AllowStartWithoutInfra bool   `env:"ALLOW_START_WITHOUT_INFRA" envDefault:"true"`
 	WorkerBatchSize        int    `env:"WORKER_BATCH_SIZE" envDefault:"250"`
 	WorkerFlushIntervalMS  int    `env:"WORKER_FLUSH_INTERVAL_MS" envDefault:"250"`
 	IngestQueueBufferSize  int    `env:"INGEST_QUEUE_BUFFER_SIZE" envDefault:"5000"`

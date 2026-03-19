@@ -39,24 +39,14 @@ func main() {
 
 	clickHouseConn, err := db.NewClickHouseConn(startupCtx, cfg)
 	if err != nil {
-		if cfg.AllowStartWithoutInfra {
-			log.Warn("clickhouse unavailable; continuing due to ALLOW_START_WITHOUT_INFRA", "error", err)
-			clickHouseConn = nil
-		} else {
-			log.Error("failed to connect clickhouse", "error", err)
-			os.Exit(1)
-		}
+		log.Error("failed to connect clickhouse", "error", err)
+		os.Exit(1)
 	}
 
 	redisClient, err := db.NewRedisClient(startupCtx, cfg)
 	if err != nil {
-		if cfg.AllowStartWithoutInfra {
-			log.Warn("redis unavailable; continuing due to ALLOW_START_WITHOUT_INFRA", "error", err)
-			redisClient = nil
-		} else {
-			log.Error("failed to connect redis", "error", err)
-			os.Exit(1)
-		}
+		log.Error("failed to connect redis", "error", err)
+		os.Exit(1)
 	}
 
 	eventValidator := appvalidator.NewEventValidator()

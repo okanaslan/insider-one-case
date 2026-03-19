@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.1] - 2026-03-19
+
+- Removed `ALLOW_START_WITHOUT_INFRA` configuration option to enforce strict infrastructure requirements at startup.
+- API now fails immediately if ClickHouse or Redis connections cannot be established, improving operational clarity.
+
 ## [0.8.0] - 2026-03-19
 
 - Added central normalization for queue and worker tuning with explicit defaults and min/max bounds.
