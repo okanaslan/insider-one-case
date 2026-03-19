@@ -44,6 +44,14 @@ make migrate-status
 go test -v ./...
 ```
 
+### Swagger Docs Workflow
+
+Generate Swagger artifacts after API contract changes:
+
+```bash
+make swagger
+```
+
 ### Run Load Tests
 
 The project includes k6 scripts under `test/load` for ingestion, metrics, bulk-shape, and mixed scenarios.

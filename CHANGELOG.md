@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-03-19
+
+- Implemented production-ready Swagger/OpenAPI integration with generated artifacts under `docs/` (`docs.go`, `swagger.json`, `swagger.yaml`).
+- Annotated handlers for `GET /health`, `POST /events`, `POST /events/bulk`, and `GET /metrics` with request/response/error contracts.
+- Added explicit response schema models (`HealthResponse`, `HealthData`, `ErrorResponse`) and enriched request examples for API documentation accuracy.
+
 ## [0.9.1] - 2026-03-19
 
 - Implemented additional validation for event tags to ensure that individual tags are not empty or whitespace-only.

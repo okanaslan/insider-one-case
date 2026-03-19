@@ -16,7 +16,7 @@ fmt:
 	go fmt ./...
 
 swagger:
-	swag init -g cmd/api/main.go -o docs
+	swag init -g cmd/api/main.go -o docs --parseInternal
 
 migrate:
 	go run ./cmd/migrate up

@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "insider-one-case/docs"
 	"insider-one-case/internal/config"
 	"insider-one-case/internal/db"
 	"insider-one-case/internal/http/handler"
@@ -22,6 +23,11 @@ import (
 	"insider-one-case/pkg/logger"
 )
 
+// @title Insider One Case API
+// @version 1.0.0
+// @description Event ingestion and analytics API with Redis deduplication, async worker batching, and ClickHouse metrics.
+// @BasePath /
+// @schemes http
 func main() {
 	cfg, err := config.Load()
 	if err != nil {

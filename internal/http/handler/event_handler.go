@@ -23,46 +23,44 @@ func NewEventHandler(eventService *service.EventService, eventValidator *appvali
 	return &EventHandler{eventService: eventService, eventValidator: eventValidator, cfg: cfg}
 }
 
+// PostEvent ingests a single event asynchronously.
+// @Summary Ingest a single event
+// @Description Validates and enqueues one event for asynchronous processing.
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param payload body model.EventIngestRequest true "Event ingestion request"
+// @Success 202 {object} model.EventIngestResponse
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 409 {object} model.ErrorResponse
+// @Failure 429 {object} model.ErrorResponse
+// @Failure 500 {object} model.ErrorResponse
+// @Router /events [post]
 func (h *EventHandler) PostEvent(c *gin.Context) {
 	var req model.EventIngestRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_request",
-			"message": "malformed JSON body",
-		})
+		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: "malformed JSON body"})
 		return
 	}
 
 	if err := h.eventValidator.ValidateEvent(c.Request.Context(), req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_request",
-			"message": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: err.Error()})
 		return
 	}
 
 	resp, err := h.eventService.Ingest(c.Request.Context(), req)
 	if err != nil {
 		if errors.Is(err, service.ErrDuplicateEvent) {
-			c.JSON(http.StatusConflict, gin.H{
-				"error":   "duplicate_event",
-				"message": "event already processed",
-			})
+			c.JSON(http.StatusConflict, model.ErrorResponse{Error: "duplicate_event", Message: "event already processed"})
 			return
 		}
 
 		if errors.Is(err, service.ErrOverloaded) {
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":   "rate_limited",
-				"message": "ingestion queue is overloaded, try again",
-			})
+			c.JSON(http.StatusTooManyRequests, model.ErrorResponse{Error: "rate_limited", Message: "ingestion queue is overloaded, try again"})
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "internal_error",
-			"message": "failed to ingest event",
-		})
+		c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: "internal_error", Message: "failed to ingest event"})
 		return
 	}
 
@@ -70,22 +68,25 @@ func (h *EventHandler) PostEvent(c *gin.Context) {
 }
 
 // PostEventBulk handles bulk event ingestion with per-event validation and partial-success semantics.
+// @Summary Ingest events in bulk
+// @Description Accepts between 1 and configured max events; returns aggregate outcome with partial-success semantics.
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param payload body model.BulkEventIngestRequest true "Bulk event ingestion request"
+// @Success 202 {object} model.BulkEventIngestResponse
+// @Failure 400 {object} model.ErrorResponse
+// @Router /events/bulk [post]
 func (h *EventHandler) PostEventBulk(c *gin.Context) {
 	var req model.BulkEventIngestRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_request",
-			"message": "malformed JSON body",
-		})
+		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: "malformed JSON body"})
 		return
 	}
 
 	// Validate envelope: non-empty and within limits.
 	if len(req.Events) == 0 || len(req.Events) > h.cfg.BulkMaxEventsPerRequest {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_request",
-			"message": fmt.Sprintf("events array must have between 1 and %d items", h.cfg.BulkMaxEventsPerRequest),
-		})
+		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: fmt.Sprintf("events array must have between 1 and %d items", h.cfg.BulkMaxEventsPerRequest)})
 		return
 	}
 

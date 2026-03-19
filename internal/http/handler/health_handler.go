@@ -18,15 +18,22 @@ func NewHealthHandler(cfg config.Config) *HealthHandler {
 	return &HealthHandler{cfg: cfg}
 }
 
+// GetHealth returns service health status.
+// @Summary Health check
+// @Description Returns basic service metadata and current UTC time.
+// @Tags health
+// @Produce json
+// @Success 200 {object} model.HealthResponse
+// @Router /health [get]
 func (h *HealthHandler) GetHealth(c *gin.Context) {
-	c.JSON(http.StatusOK, model.APIResponse{
+	c.JSON(http.StatusOK, model.HealthResponse{
 		Success: true,
 		Message: "ok",
-		Data: gin.H{
-			"status": "ok",
-			"app":    h.cfg.AppName,
-			"env":    h.cfg.AppEnv,
-			"time":   time.Now().UTC(),
+		Data: model.HealthData{
+			Status: "ok",
+			App:    h.cfg.AppName,
+			Env:    h.cfg.AppEnv,
+			Time:   time.Now().UTC().Format(time.RFC3339),
 		},
 	})
 }

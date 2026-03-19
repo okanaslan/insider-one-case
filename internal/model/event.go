@@ -3,13 +3,13 @@ package model
 import "fmt"
 
 type EventIngestRequest struct {
-	EventName  string         `json:"event_name" validate:"required"`
-	Channel    string         `json:"channel" validate:"required"`
-	CampaignID string         `json:"campaign_id" validate:"required"`
-	UserID     string         `json:"user_id" validate:"required"`
-	Timestamp  int64          `json:"timestamp" validate:"required"`
-	Tags       []string       `json:"tags" validate:"required"`
-	Metadata   map[string]any `json:"metadata"`
+	EventName  string         `json:"event_name" validate:"required" example:"purchase"`
+	Channel    string         `json:"channel" validate:"required" example:"mobile"`
+	CampaignID string         `json:"campaign_id" validate:"required" example:"cmp_123"`
+	UserID     string         `json:"user_id" validate:"required" example:"user_456"`
+	Timestamp  int64          `json:"timestamp" validate:"required" example:"1710000000"`
+	Tags       []string       `json:"tags" validate:"required" example:"promo,spring"`
+	Metadata   map[string]any `json:"metadata" swaggertype:"object"`
 }
 
 // UniquenessKey returns a composite key for deduplication based on user_id, timestamp, and event_name.

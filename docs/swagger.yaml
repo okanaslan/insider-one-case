@@ -1,0 +1,273 @@
+basePath: /
+definitions:
+  model.BulkEventIngestRequest:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/model.EventIngestRequest'
+        type: array
+    required:
+    - events
+    type: object
+  model.BulkEventIngestResponse:
+    properties:
+      status:
+        description: accepted_all, accepted_partial, rejected
+        type: string
+      summary:
+        $ref: '#/definitions/model.BulkEventIngestSummary'
+    type: object
+  model.BulkEventIngestSummary:
+    properties:
+      accepted:
+        type: integer
+      duplicate:
+        type: integer
+      error:
+        type: integer
+      invalid:
+        type: integer
+      overloaded:
+        type: integer
+      total:
+        type: integer
+    type: object
+  model.ErrorResponse:
+    properties:
+      error:
+        example: invalid_request
+        type: string
+      message:
+        example: malformed JSON body
+        type: string
+    type: object
+  model.EventIngestRequest:
+    properties:
+      campaign_id:
+        example: cmp_123
+        type: string
+      channel:
+        example: mobile
+        type: string
+      event_name:
+        example: purchase
+        type: string
+      metadata:
+        type: object
+      tags:
+        example:
+        - promo
+        - spring
+        items:
+          type: string
+        type: array
+      timestamp:
+        example: 1710000000
+        type: integer
+      user_id:
+        example: user_456
+        type: string
+    required:
+    - campaign_id
+    - channel
+    - event_name
+    - tags
+    - timestamp
+    - user_id
+    type: object
+  model.EventIngestResponse:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  model.HealthData:
+    properties:
+      app:
+        example: insider-one-case
+        type: string
+      env:
+        example: development
+        type: string
+      status:
+        example: ok
+        type: string
+      time:
+        example: "2026-03-19T22:50:00Z"
+        type: string
+    type: object
+  model.HealthResponse:
+    properties:
+      data:
+        $ref: '#/definitions/model.HealthData'
+      message:
+        example: ok
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  model.MetricsGroup:
+    properties:
+      count:
+        type: integer
+      key:
+        type: string
+      unique_users:
+        type: integer
+    type: object
+  model.MetricsResponse:
+    properties:
+      event_name:
+        type: string
+      from:
+        type: integer
+      group_by:
+        type: string
+      groups:
+        items:
+          $ref: '#/definitions/model.MetricsGroup'
+        type: array
+      to:
+        type: integer
+      total_count:
+        type: integer
+      unique_users:
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: Event ingestion and analytics API with Redis deduplication, async worker
+    batching, and ClickHouse metrics.
+  title: Insider One Case API
+  version: 1.0.0
+paths:
+  /events:
+    post:
+      consumes:
+      - application/json
+      description: Validates and enqueues one event for asynchronous processing.
+      parameters:
+      - description: Event ingestion request
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.EventIngestRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/model.EventIngestResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Ingest a single event
+      tags:
+      - events
+  /events/bulk:
+    post:
+      consumes:
+      - application/json
+      description: Accepts between 1 and configured max events; returns aggregate
+        outcome with partial-success semantics.
+      parameters:
+      - description: Bulk event ingestion request
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.BulkEventIngestRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/model.BulkEventIngestResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Ingest events in bulk
+      tags:
+      - events
+  /health:
+    get:
+      description: Returns basic service metadata and current UTC time.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+  /metrics:
+    get:
+      description: Returns totals and optional channel grouping for an event in the
+        provided [from, to) unix timestamp range.
+      parameters:
+      - description: Event name
+        example: purchase
+        in: query
+        name: event_name
+        required: true
+        type: string
+      - description: Inclusive unix timestamp lower bound
+        example: 1710000000
+        in: query
+        name: from
+        required: true
+        type: integer
+      - description: Exclusive unix timestamp upper bound
+        example: 1710086400
+        in: query
+        name: to
+        required: true
+        type: integer
+      - description: Optional grouping
+        enum:
+        - channel
+        in: query
+        name: group_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.MetricsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Query event metrics
+      tags:
+      - metrics
+schemes:
+- http
+swagger: "2.0"
