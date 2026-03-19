@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.1] - 2026-03-19
+
+- Implemented additional validation for event tags to ensure that individual tags are not empty or whitespace-only.
+- Improved documentation cohesion by explaining why each decision was made, how it behaves in practice, and its trade-offs in one place.
+
 ## [0.9.0] - 2026-03-19
 
 - Implemented `POST /events/bulk` with partial-success semantics; per-event outcomes (accepted, duplicate, invalid, overloaded, error) returned in structured response.

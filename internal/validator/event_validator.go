@@ -40,5 +40,12 @@ func (v *EventValidator) ValidateEvent(ctx context.Context, event model.EventIng
 		return fmt.Errorf("tags is required and must not be empty")
 	}
 
+	// Validate individual tags: must be non-empty and not whitespace-only.
+	for i, tag := range event.Tags {
+		if strings.TrimSpace(tag) == "" {
+			return fmt.Errorf("tag at index %d is empty or whitespace-only", i)
+		}
+	}
+
 	return v.validator.Struct(event)
 }
