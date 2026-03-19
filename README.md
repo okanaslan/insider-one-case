@@ -51,10 +51,7 @@ The project includes k6 scripts under `test/load` for ingestion, metrics, bulk-s
 Example:
 
 ```bash
-BASE_URL=http://localhost:8080 \
-VUS=50 \
-DURATION=2m \
-k6 run test/load/k6_ingestion.js
+BASE_URL=http://localhost:8080 k6 run test/load/k6_ingestion.js
 ```
 
 ## Configuration

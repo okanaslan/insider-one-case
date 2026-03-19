@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.2] - 2026-03-19
+
+- Improved ingestion load-test realism by expanding synthetic event/cardinality dimensions (event names, channels, campaigns, and multi-tag combinations).
+- Tightened ingestion thresholds to emphasize stricter SLOs (`http_req_failed < 1%`, `p99 < 2s`) and added status-specific latency assertions for `202` and `409` responses.
+
 ## [0.8.1] - 2026-03-19
 
 - Removed `ALLOW_START_WITHOUT_INFRA` configuration option to enforce strict infrastructure requirements at startup.
