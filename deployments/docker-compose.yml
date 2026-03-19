@@ -1,4 +1,21 @@
 services:
+  migrate:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+    command: ["/app/migrate", "up"]
+    environment:
+      APP_NAME: insider-one-case
+      APP_ENV: development
+      CLICKHOUSE_ADDR: clickhouse:9000
+      CLICKHOUSE_DATABASE: analytics
+      CLICKHOUSE_USERNAME: default
+      CLICKHOUSE_PASSWORD: "devpassword"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    restart: "no"
+
   app:
     build:
       context: ..
@@ -22,8 +39,10 @@ services:
       WORKER_FLUSH_INTERVAL_MS: "1000"
       INGEST_QUEUE_BUFFER_SIZE: "10000"
     depends_on:
-      - clickhouse
-      - redis
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
@@ -34,6 +53,12 @@ services:
       CLICKHOUSE_DB: analytics
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: "devpassword"
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --user default --password devpassword --query 'SELECT 1' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     volumes:
       - clickhouse_data:/var/lib/clickhouse
 

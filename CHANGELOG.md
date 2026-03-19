@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2026-03-19
+
+- Improved migration startup reliability by adding ClickHouse connection retry logic in `cmd/migrate`.
+- Added ClickHouse healthcheck and updated Compose dependencies so migrations wait for healthy ClickHouse before running.
+- Updated Docker image build to include the `migrate` binary for one-shot migration execution in Docker Compose.
+
 ## [0.5.0] - 2026-03-19
 
 - Added Goose-based ClickHouse migrations with an embedded `cmd/migrate` command and initial events table migration.

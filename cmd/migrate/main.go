@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -28,7 +30,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	sqlDB, err := db.NewClickHouseSQLDB(ctx, cfg)
+	sqlDB, err := openClickHouseWithRetry(ctx, cfg)
 	if err != nil {
 		slog.Error("failed to connect clickhouse for migrations", "error", err)
 		os.Exit(1)
@@ -61,5 +63,29 @@ func main() {
 	default:
 		slog.Error("unsupported migration command", "command", command)
 		os.Exit(1)
+	}
+}
+
+func openClickHouseWithRetry(ctx context.Context, cfg config.Config) (*sql.DB, error) {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	var lastErr error
+	for {
+		dbConn, err := db.NewClickHouseSQLDB(ctx, cfg)
+		if err == nil {
+			return dbConn, nil
+		}
+
+		lastErr = err
+
+		select {
+		case <-ctx.Done():
+			if lastErr != nil {
+				return nil, fmt.Errorf("timeout waiting for clickhouse: %w", lastErr)
+			}
+			return nil, errors.New("timeout waiting for clickhouse")
+		case <-ticker.C:
+		}
 	}
 }
