@@ -3,37 +3,46 @@ package service
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"insider-one-case/internal/model"
-	"insider-one-case/internal/repository"
 )
 
+type MetricsRepository interface {
+	QueryTotals(ctx context.Context, query model.MetricsQuery) (uint64, uint64, error)
+	QueryGroupedByChannel(ctx context.Context, query model.MetricsQuery) ([]model.MetricsGroup, error)
+}
+
 type MetricsService struct {
-	repo *repository.MetricsRepository
+	repo MetricsRepository
 	log  *slog.Logger
 }
 
-func NewMetricsService(repo *repository.MetricsRepository, log *slog.Logger) *MetricsService {
+func NewMetricsService(repo MetricsRepository, log *slog.Logger) *MetricsService {
 	return &MetricsService{repo: repo, log: log}
 }
 
 func (s *MetricsService) Query(ctx context.Context, query model.MetricsQuery) (model.MetricsResponse, error) {
-	points, err := s.repo.QueryMetrics(ctx, query)
+	totalCount, uniqueUsers, err := s.repo.QueryTotals(ctx, query)
 	if err != nil {
 		return model.MetricsResponse{}, err
 	}
 
-	if len(points) == 0 {
-		// TODO: replace placeholder series once metric query implementation is complete.
-		points = []model.MetricsPoint{
-			{Timestamp: time.Now().UTC().Add(-1 * time.Minute), Value: 10},
-			{Timestamp: time.Now().UTC(), Value: 12},
-		}
+	response := model.MetricsResponse{
+		EventName:   query.EventName,
+		From:        query.From,
+		To:          query.To,
+		TotalCount:  totalCount,
+		UniqueUsers: uniqueUsers,
 	}
 
-	return model.MetricsResponse{
-		MetricName: query.MetricName,
-		Points:     points,
-	}, nil
+	if query.GroupBy == "channel" {
+		groups, err := s.repo.QueryGroupedByChannel(ctx, query)
+		if err != nil {
+			return model.MetricsResponse{}, err
+		}
+		response.GroupBy = "channel"
+		response.Groups = groups
+	}
+
+	return response, nil
 }

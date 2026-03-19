@@ -1,21 +1,24 @@
 package model
 
-import "time"
-
 type MetricsQuery struct {
-	MetricName  string
-	From        time.Time
-	To          time.Time
-	Granularity string
-	Limit       int
+	EventName string
+	From      int64
+	To        int64
+	GroupBy   string
 }
 
-type MetricsPoint struct {
-	Timestamp time.Time `json:"timestamp"`
-	Value     float64   `json:"value"`
+type MetricsGroup struct {
+	Key         string `json:"key"`
+	Count       uint64 `json:"count"`
+	UniqueUsers uint64 `json:"unique_users"`
 }
 
 type MetricsResponse struct {
-	MetricName string         `json:"metric_name"`
-	Points     []MetricsPoint `json:"points"`
+	EventName   string         `json:"event_name"`
+	From        int64          `json:"from"`
+	To          int64          `json:"to"`
+	TotalCount  uint64         `json:"total_count"`
+	UniqueUsers uint64         `json:"unique_users"`
+	GroupBy     string         `json:"group_by,omitempty"`
+	Groups      []MetricsGroup `json:"groups,omitempty"`
 }

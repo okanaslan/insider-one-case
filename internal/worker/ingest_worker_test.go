@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 	"testing"
@@ -12,6 +13,16 @@ import (
 	"insider-one-case/internal/config"
 	"insider-one-case/internal/model"
 )
+
+type errBatchWriter struct {
+	err error
+}
+
+func (e *errBatchWriter) InsertEventsBatch(ctx context.Context, events []model.EventIngestRequest) error {
+	_ = ctx
+	_ = events
+	return e.err
+}
 
 type fakeBatchWriter struct {
 	mu      sync.Mutex
@@ -121,4 +132,18 @@ func TestIngestWorkerFlushesQueuedEventsOnShutdown(t *testing.T) {
 		calls, batches := writer.snapshot()
 		return calls == 1 && len(batches) == 1 && len(batches[0]) == 2
 	}, time.Second, 10*time.Millisecond)
+}
+
+func TestIngestWorkerEnqueueReturnsErrorWhenQueueIsFull(t *testing.T) {
+	worker := NewIngestWorker(config.Config{
+		WorkerBatchSize:       100,
+		WorkerFlushIntervalMS: 60000,
+		IngestQueueBufferSize: 1,
+	}, slog.Default(), &errBatchWriter{err: errors.New("insert failed")})
+
+	require.NoError(t, worker.Enqueue(testEvent("purchase")))
+
+	err := worker.Enqueue(testEvent("signup"))
+	require.Error(t, err)
+	require.EqualError(t, err, "event queue is full")
 }

@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -20,41 +19,76 @@ func NewMetricsHandler(metricsService *service.MetricsService) *MetricsHandler {
 }
 
 func (h *MetricsHandler) GetMetrics(c *gin.Context) {
-	query := model.MetricsQuery{
-		MetricName:  c.DefaultQuery("metric_name", "events_total"),
-		Granularity: c.DefaultQuery("granularity", "1m"),
-		Limit:       100,
-	}
-
-	if fromStr := c.Query("from"); fromStr != "" {
-		if parsed, err := time.Parse(time.RFC3339, fromStr); err == nil {
-			query.From = parsed
-		}
-	}
-
-	if toStr := c.Query("to"); toStr != "" {
-		if parsed, err := time.Parse(time.RFC3339, toStr); err == nil {
-			query.To = parsed
-		}
-	}
-
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
-			query.Limit = parsed
-		}
-	}
-
-	resp, err := h.metricsService.Query(c.Request.Context(), query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, model.APIResponse{
-			Success: false,
-			Error:   "failed to query metrics",
+	eventName := c.Query("event_name")
+	if eventName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "event_name is required",
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, model.APIResponse{
-		Success: true,
-		Data:    resp,
-	})
+	fromStr := c.Query("from")
+	if fromStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "from is required",
+		})
+		return
+	}
+	from, err := strconv.ParseInt(fromStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "from must be a unix timestamp",
+		})
+		return
+	}
+
+	toStr := c.Query("to")
+	if toStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "to is required",
+		})
+		return
+	}
+	to, err := strconv.ParseInt(toStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "to must be a unix timestamp",
+		})
+		return
+	}
+
+	if from >= to {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "from must be less than to",
+		})
+		return
+	}
+
+	groupBy := c.Query("group_by")
+	if groupBy != "" && groupBy != "channel" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "group_by must be one of: channel",
+		})
+		return
+	}
+
+	query := model.MetricsQuery{EventName: eventName, From: from, To: to, GroupBy: groupBy}
+
+	resp, err := h.metricsService.Query(c.Request.Context(), query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "internal_error",
+			"message": "failed to query metrics",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
 }

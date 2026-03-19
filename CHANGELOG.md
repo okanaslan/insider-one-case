@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-03-19
+
+- Redesigned `GET /metrics` contract to require `event_name`, `from`, and `to`, with optional `group_by=channel` validation and standardized `400`/`500` JSON errors.
+- Implemented real ClickHouse-backed metrics queries for total event count, unique user count, and optional grouped aggregation by channel.
+- Updated metrics response model to return totals and optional grouped results in case-aligned shape.
+- Added tests for metrics handler validation paths, metrics service orchestration, and repository nil-connection behavior.
+
 ## [0.5.1] - 2026-03-19
 
 - Improved migration startup reliability by adding ClickHouse connection retry logic in `cmd/migrate`.
