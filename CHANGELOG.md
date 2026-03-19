@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1] - 2026-03-19
+
+- Added event repository tests for nil-connection insert behavior and metadata serialization correctness.
+- Improved core-flow test coverage without changing runtime behavior.
+
 ## [0.6.0] - 2026-03-19
 
 - Redesigned `GET /metrics` contract to require `event_name`, `from`, and `to`, with optional `group_by=channel` validation and standardized `400`/`500` JSON errors.
