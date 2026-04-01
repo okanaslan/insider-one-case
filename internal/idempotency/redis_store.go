@@ -28,10 +28,10 @@ func (s *RedisStore) ReserveEvent(ctx context.Context, key string, ttl time.Dura
 		return true, nil
 	}
 
-	reserved, err := s.client.SetNX(ctx, key, "1", ttl).Result()
+	reserved, err := s.client.SetArgs(ctx, key, "1", redis.SetArgs{Mode: "NX", TTL: ttl}).Result()
 	if err != nil {
 		return false, err
 	}
 
-	return reserved, nil
+	return reserved == "OK", nil
 }

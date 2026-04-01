@@ -43,6 +43,10 @@ func (r *MetricsRepository) QueryTotals(ctx context.Context, query model.Metrics
 		return 0, 0, nil
 	}
 
+	if err := rows.Err(); err != nil {
+		return 0, 0, fmt.Errorf("iterate totals rows: %w", err)
+	}
+
 	var totalCount uint64
 	var uniqueUsers uint64
 	if err := rows.Scan(&totalCount, &uniqueUsers); err != nil {
@@ -81,6 +85,10 @@ func (r *MetricsRepository) QueryGroupedByChannel(ctx context.Context, query mod
 			return nil, fmt.Errorf("scan grouped row: %w", err)
 		}
 		groups = append(groups, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate grouped rows: %w", err)
 	}
 
 	return groups, nil

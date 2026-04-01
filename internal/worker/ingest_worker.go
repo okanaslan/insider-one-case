@@ -43,7 +43,6 @@ func NewIngestWorker(cfg config.Config, log *slog.Logger, writer EventBatchWrite
 }
 
 // Enqueue adds an event to the in-memory queue for async processing.
-
 // Returns ErrEnqueueTimeout if the queue cannot accept the event within
 // the configured enqueue timeout window.
 func (w *IngestWorker) Enqueue(ctx context.Context, event model.EventIngestRequest) error {

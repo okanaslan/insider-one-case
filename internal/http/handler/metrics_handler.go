@@ -2,20 +2,21 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"insider-one-case/internal/model"
 	"insider-one-case/internal/service"
+	appvalidator "insider-one-case/internal/validator"
 )
 
 type MetricsHandler struct {
 	metricsService *service.MetricsService
+	validator      *appvalidator.MetricsValidator
 }
 
-func NewMetricsHandler(metricsService *service.MetricsService) *MetricsHandler {
-	return &MetricsHandler{metricsService: metricsService}
+func NewMetricsHandler(metricsService *service.MetricsService, validator *appvalidator.MetricsValidator) *MetricsHandler {
+	return &MetricsHandler{metricsService: metricsService, validator: validator}
 }
 
 // GetMetrics returns aggregated metrics for a given event and time range.
@@ -32,46 +33,17 @@ func NewMetricsHandler(metricsService *service.MetricsService) *MetricsHandler {
 // @Failure 500 {object} model.ErrorResponse
 // @Router /metrics [get]
 func (h *MetricsHandler) GetMetrics(c *gin.Context) {
-	eventName := c.Query("event_name")
-	if eventName == "" {
-		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: "event_name is required"})
+	var params model.MetricsQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: err.Error()})
 		return
 	}
 
-	fromStr := c.Query("from")
-	if fromStr == "" {
-		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: "from is required"})
-		return
-	}
-	from, err := strconv.ParseInt(fromStr, 10, 64)
+	query, err := h.validator.ParseAndValidateQuery(c.Request.Context(), params)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: "from must be a unix timestamp"})
+		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: err.Error()})
 		return
 	}
-
-	toStr := c.Query("to")
-	if toStr == "" {
-		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: "to is required"})
-		return
-	}
-	to, err := strconv.ParseInt(toStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: "to must be a unix timestamp"})
-		return
-	}
-
-	if from >= to {
-		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: "from must be less than to"})
-		return
-	}
-
-	groupBy := c.Query("group_by")
-	if groupBy != "" && groupBy != "channel" {
-		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid_request", Message: "group_by must be one of: channel"})
-		return
-	}
-
-	query := model.MetricsQuery{EventName: eventName, From: from, To: to, GroupBy: groupBy}
 
 	resp, err := h.metricsService.Query(c.Request.Context(), query)
 	if err != nil {

@@ -1,5 +1,9 @@
 {
     "cSpell.words": [
         "CLICKHOUSE"
-    ]
+    ],
+    "yaml.schemas": {
+        "file:///Users/okanaslan/.vscode/extensions/atlassian.atlascode-3.6.5/resources/schemas/pipelines-schema.json": "bitbucket-pipelines.yml",
+        "https://www.artillery.io/schema.json": []
+    }
 }

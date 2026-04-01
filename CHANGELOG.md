@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-04-01
+
+- Refactored metrics request validation into a dedicated `MetricsValidator` and updated `MetricsHandler` to delegate parse/validate logic through it, keeping handler responsibilities focused on transport concerns.
+- Fixed bulk ingestion semantics to filter invalid events before service enqueueing, preserving partial-success behavior while preventing invalid payloads from entering async processing.
+- Replaced deprecated Redis `SetNX` usage in idempotency reserve flow with `SetArgs` using `NX` mode while preserving reservation semantics.
+- Hardened metrics repository row handling by checking `rows.Err()` in both totals and grouped query paths.
+
 ## [1.0.0] - 2026-03-19
 
 - Implemented production-ready Swagger/OpenAPI integration with generated artifacts under `docs/` (`docs.go`, `swagger.json`, `swagger.yaml`).

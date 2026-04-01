@@ -56,6 +56,7 @@ func main() {
 	}
 
 	eventValidator := appvalidator.NewEventValidator()
+	metricsValidator := appvalidator.NewMetricsValidator()
 	idempotencyStore := idempotency.NewRedisStore(redisClient, log)
 
 	eventRepo := repository.NewEventRepository(clickHouseConn, log)
@@ -71,7 +72,7 @@ func main() {
 
 	healthHandler := handler.NewHealthHandler(cfg)
 	eventHandler := handler.NewEventHandler(eventService, eventValidator, cfg)
-	metricsHandler := handler.NewMetricsHandler(metricsService)
+	metricsHandler := handler.NewMetricsHandler(metricsService, metricsValidator)
 
 	engine := router.Build(cfg, log, healthHandler, eventHandler, metricsHandler)
 	server := &http.Server{

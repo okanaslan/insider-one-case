@@ -11,12 +11,13 @@ import (
 
 	"insider-one-case/internal/model"
 	"insider-one-case/internal/service"
+	appvalidator "insider-one-case/internal/validator"
 )
 
 func TestMetricsHandlerMissingEventNameReturns400(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	h := &MetricsHandler{metricsService: nil}
+	h := NewMetricsHandler(nil, appvalidator.NewMetricsValidator())
 	r.GET("/metrics", h.GetMetrics)
 
 	req := httptest.NewRequest(http.MethodGet, "/metrics?from=1710000000&to=1710086400", nil)
@@ -30,7 +31,7 @@ func TestMetricsHandlerMissingEventNameReturns400(t *testing.T) {
 func TestMetricsHandlerInvalidGroupByReturns400(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	h := &MetricsHandler{metricsService: nil}
+	h := NewMetricsHandler(nil, appvalidator.NewMetricsValidator())
 	r.GET("/metrics", h.GetMetrics)
 
 	req := httptest.NewRequest(http.MethodGet, "/metrics?event_name=purchase&from=1710000000&to=1710086400&group_by=hour", nil)
@@ -44,7 +45,7 @@ func TestMetricsHandlerInvalidGroupByReturns400(t *testing.T) {
 func TestMetricsHandlerMissingFromReturns400(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	h := &MetricsHandler{metricsService: nil}
+	h := NewMetricsHandler(nil, appvalidator.NewMetricsValidator())
 	r.GET("/metrics", h.GetMetrics)
 
 	req := httptest.NewRequest(http.MethodGet, "/metrics?event_name=purchase&to=1710086400", nil)
@@ -58,7 +59,7 @@ func TestMetricsHandlerMissingFromReturns400(t *testing.T) {
 func TestMetricsHandlerMissingToReturns400(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	h := &MetricsHandler{metricsService: nil}
+	h := NewMetricsHandler(nil, appvalidator.NewMetricsValidator())
 	r.GET("/metrics", h.GetMetrics)
 
 	req := httptest.NewRequest(http.MethodGet, "/metrics?event_name=purchase&from=1710000000", nil)
@@ -75,7 +76,7 @@ func TestMetricsHandlerValidQueryReturns200(t *testing.T) {
 
 	repo := &fakeMetricsRepoForHandler{}
 	svc := service.NewMetricsService(repo, nil)
-	h := NewMetricsHandler(svc)
+	h := NewMetricsHandler(svc, appvalidator.NewMetricsValidator())
 	r.GET("/metrics", h.GetMetrics)
 
 	req := httptest.NewRequest(http.MethodGet, "/metrics?event_name=purchase&from=1710000000&to=1710086400&group_by=channel", nil)

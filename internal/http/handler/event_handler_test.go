@@ -20,12 +20,16 @@ import (
 )
 
 type fakeEventEnqueuer struct {
-	err error
+	err      error
+	enqueued []model.EventIngestRequest
 }
 
 func (f *fakeEventEnqueuer) Enqueue(ctx context.Context, event model.EventIngestRequest) error {
 	_ = ctx
-	_ = event
+	if f.err != nil {
+		return f.err
+	}
+	f.enqueued = append(f.enqueued, event)
 	return f.err
 }
 
@@ -124,4 +128,33 @@ func TestPostEventBulkPartialSuccess(t *testing.T) {
 	require.Contains(t, w.Body.String(), "accepted_all")
 	require.Contains(t, w.Body.String(), `"total":2`)
 	require.Contains(t, w.Body.String(), `"accepted":2`)
+}
+
+func TestPostEventBulkFiltersInvalidEvents(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	cfg := config.Config{BulkMaxEventsPerRequest: 500}
+	queue := &fakeEventEnqueuer{}
+	svc := service.NewEventService(queue, idempotency.NewRedisStore(nil, slog.Default()), slog.Default())
+	h := NewEventHandler(svc, appvalidator.NewEventValidator(), cfg)
+
+	r.POST("/events/bulk", h.PostEventBulk)
+
+	payload := `{"events":[
+		{"event_name":"purchase","channel":"mobile","campaign_id":"cmp_1","user_id":"user_1","timestamp":1710000000,"tags":["promo"]},
+		{"event_name":"","channel":"web","campaign_id":"cmp_2","user_id":"user_2","timestamp":1710000001,"tags":["summer"]}
+	]}`
+	req := httptest.NewRequest(http.MethodPost, "/events/bulk", bytes.NewBufferString(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusAccepted, w.Code)
+	require.Contains(t, w.Body.String(), "accepted_partial")
+	require.Contains(t, w.Body.String(), `"total":2`)
+	require.Contains(t, w.Body.String(), `"accepted":1`)
+	require.Contains(t, w.Body.String(), `"invalid":1`)
+	require.Len(t, queue.enqueued, 1)
 }

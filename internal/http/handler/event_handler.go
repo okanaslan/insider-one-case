@@ -92,19 +92,24 @@ func (h *EventHandler) PostEventBulk(c *gin.Context) {
 
 	// Count validation errors.
 	invalidCount := 0
+	validEvents := make([]model.EventIngestRequest, 0, len(req.Events))
 	for _, event := range req.Events {
 		if err := h.eventValidator.ValidateEvent(c.Request.Context(), event); err != nil {
 			invalidCount++
+			continue
 		}
+		validEvents = append(validEvents, event)
 	}
 
-	// Call service for processing.
-	resp := h.eventService.IngestBulk(c.Request.Context(), req)
+	// Call service for valid events only.
+	resp := h.eventService.IngestBulk(c.Request.Context(), model.BulkEventIngestRequest{Events: validEvents})
+
+	// Keep response totals tied to original input size.
+	resp.Summary.Total = len(req.Events)
 
 	// Update summary with validation errors.
 	if invalidCount > 0 {
 		resp.Summary.Invalid = invalidCount
-		resp.Summary.Accepted -= invalidCount
 		resp.Status = "accepted_partial"
 	}
 
