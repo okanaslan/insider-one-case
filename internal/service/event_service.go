@@ -69,7 +69,7 @@ func (s *EventService) IngestBulk(ctx context.Context, req model.BulkEventIngest
 		key := "event:" + event.UniquenessKey()
 
 		// Try to reserve the event key in Redis.
-		reserved, err := s.idempotency.ReserveEvent(ctx, key, 24*time.Hour)
+		reserved, err := s.idempotency.ReserveEvent(ctx, key, 1*time.Minute)
 		if err != nil {
 			s.log.Warn("idempotency reserve failed in bulk", "uniqueness_key", event.UniquenessKey(), "error", err)
 		} else if !reserved {
